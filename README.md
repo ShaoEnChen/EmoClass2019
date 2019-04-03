@@ -11,9 +11,9 @@ We plan to explore and generate different features and demonstrate the outcomeâ€
 - Python 3.5
 - PyTorch 1.0
 
-### Train and Eval model ###
-python main.py --model VGG19 --bs 64 --lr 0.01 --save-path checkpoints/best_model_vgg19.t7
+### Train and Eval model
+    python main.py --model VGG19 --bs 64 --lr 0.01 --save-path checkpoints/best_model_vgg19.t7
 
 ### Results
-- Model: VGG19; best_val_acc: 70.967%; test_acc: 72.834%     <Br/>
-- Model: Resnet18; best_val_acc: 71.441%; test_acc: 72.778% 
+- Model:    VGG19; the best validation accuracy: 70.967%; testing accuracy: 72.834%
+- Model: Resnet18; the best validation accuracy: 71.441%; testing accuracy: 72.778% 
