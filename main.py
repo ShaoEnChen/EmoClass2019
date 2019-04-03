@@ -13,7 +13,7 @@ import utils
 parser = argparse.ArgumentParser(description='Facial Expression Recognition')
 parser.add_argument('--model', type=str, default='VGG19', help='network architecture')
 parser.add_argument('--dataset', type=str, default='FER2013', help='dataset')
-parser.add_argument('--bs', type=int, default=128, help='batch size')
+parser.add_argument('--bs', type=int, default=64, help='batch size')
 parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
 parser.add_argument('--save-path', type=str, default='checkpoints/best_model.t7', help='path to save model')
 args = parser.parse_args()
@@ -34,7 +34,7 @@ best_val_acc = 0.0
 best_val_acc_epoch = 0
 
 start_epoch = 0
-total_epoch = 1
+total_epoch = 250
 
 if not os.path.exists(os.path.dirname(args.save_path)):
     os.makedirs(os.path.dirname(args.save_path))
@@ -190,7 +190,7 @@ def test():
                            .format(test_loss / (batch_idx + 1), correct / total * 100, correct, total))
     
     return correct / total * 100
-"""
+
 for epoch in range(start_epoch, total_epoch):
     print('Epoch: {}'.format(epoch))
     train(epoch)
@@ -198,5 +198,4 @@ for epoch in range(start_epoch, total_epoch):
 
 print('best_val_acc: {:.3f}%'.format(best_val_acc))
 print('best_val_acc_epoch: {}'.format(best_val_acc_epoch))
-"""
 print('test_acc: {:.3f}%'.format(test()))
