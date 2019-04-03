@@ -11,7 +11,7 @@ We plan to explore and generate different features and demonstrate the outcomeâ€
 - Python 3.5
 - PyTorch 1.0
 
-### Train and Eval model
+### Train and evaluate model
     python main.py --model VGG19 --bs 64 --lr 0.01 --save-path checkpoints/best_model_vgg19.t7
 
 ### Results
