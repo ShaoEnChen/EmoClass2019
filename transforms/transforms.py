@@ -727,7 +727,7 @@ class RotationByEyesAngle(object):
         return F.rotate_by_eyes_angle(img)
 
 
-class Blur(obj):
+class Blur(object):
 
     def __init__(self, filter_size = 3):
         if not isinstance(filter_size, numbers.Number):
@@ -742,7 +742,8 @@ class Blur(obj):
         return F.blur(img, self.filter_size)
 
 
-class GaussianBlur(obj):
+class GaussianBlur(object):
+    # highly effective in removing gaussian noise from the image
 
     def __init__(self, filter_size = 3):
         if not isinstance(filter_size, numbers.Number):
@@ -757,7 +758,7 @@ class GaussianBlur(obj):
         return F.gaussian_blur(img, self.filter_size)
 
 
-def Sharpen(obj):
+class Sharpen(object):
 
     def __call__(self, img):
         """
