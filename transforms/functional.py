@@ -749,9 +749,14 @@ def sharpen(img):
     if not _is_pil_image(img):
         raise TypeError('img should be PIL Image. Got {}'.format(type(img)))
 
+    '''
     kernel = np.array([[0, 1, 0],
                        [1, -4, 1],
                        [0, 1, 0]])
+    '''
+    kernel = np.array([[-1, -1, -1],
+                       [-1, 9, -1],
+                       [-1, -1, -1]])
 
     img = to_tensor(img)
     sharpened_img = cv2.filter2D(img, -1, kernel)
