@@ -681,7 +681,7 @@ def rotate_by_eyes_angle(img):
     if not _is_pil_image(img):
         raise TypeError('img should be PIL Image. Got {}'.format(type(img)))
 
-    img = to_tensor(img)
+    img = np.asarray(img)
     ori_w = ori_h = int(math.sqrt(len(img)))
     center_w = center_h = int(ori_w / 2)
 
@@ -716,7 +716,7 @@ def blur(img, filter_size = 3):
     if not (filter_size > 0 and filter_size & 1):
         raise ValueError('filter size should be a positive and odd number')
 
-    img = to_tensor(img)
+    img = np.asarray(img)
     blurred_img = cv2.blur(img, (filter_size, filter_size))
 
     return to_pil_image(blurred_img)
@@ -736,7 +736,7 @@ def gaussian_blur(img, filter_size = 3):
     if not (filter_size > 0 and filter_size & 1):
         raise ValueError('filter size should be a positive and odd number')
 
-    img = to_tensor(img)
+    img = np.asarray(img)
     blurred_img = cv2.GaussianBlur(img, (filter_size, filter_size), 0)
 
     return to_pil_image(blurred_img)
@@ -758,7 +758,7 @@ def sharpen(img):
                        [-1, 9, -1],
                        [-1, -1, -1]])
 
-    img = to_tensor(img)
+    img = np.asarray(img)
     sharpened_img = cv2.filter2D(img, -1, kernel)
 
     return to_pil_image(sharpened_img)
