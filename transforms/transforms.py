@@ -13,6 +13,8 @@ import numbers
 import types
 import collections
 import warnings
+from imutils import face_utils
+import dlib
 import cv2
 
 from . import functional as F
@@ -21,7 +23,7 @@ __all__ = ["Compose", "ToTensor", "ToPILImage", "Normalize", "Resize", "Scale", 
            "Lambda", "RandomCrop", "RandomHorizontalFlip", "RandomVerticalFlip", "RandomResizedCrop",
            "RandomSizedCrop", "FiveCrop", "TenCrop", "LinearTransformation", "ColorJitter", "RandomRotation",
            "Grayscale", "RandomGrayscale", "HistogramEqualization", "RotationByEyesAngle", "Blur",
-           "GaussianBlur", "Sharpen"]
+           "GaussianBlur", "Sharpen", "FacialLandmark"]
 
 
 class Compose(object):
@@ -764,11 +766,24 @@ class Sharpen(object):
         """
         Args:
             PIL Image: Image to be Sharpened by a kernel:
-            [[0, 1, 0],
-             [1, -4, 1],
-             [0, 1, 0]]
+            [[-1, -1, -1],
+             [-1, 9, -1],
+             [-1, -1, -1]]
 
         Returns:
             PIL Image: Image sharpened.
         """
         return F.sharpen(img)
+
+
+class FacialLandmark(object):
+
+    def __call__(self, img):
+        """
+        Args:
+            PIL Image: Image to draw facial landmarks
+
+        Returns:
+            PIL Image: Image with facial landmarks
+        """
+        return F.get_facial_landmark(img)

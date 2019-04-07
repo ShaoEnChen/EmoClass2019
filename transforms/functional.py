@@ -13,6 +13,8 @@ import numbers
 import types
 import collections
 import warnings
+from imutils import face_utils
+import dlib
 import cv2
 
 
@@ -762,3 +764,23 @@ def sharpen(img):
     sharpened_img = cv2.filter2D(img, -1, kernel)
 
     return to_pil_image(sharpened_img)
+
+
+def get_facial_landmark(img):
+    p = "shape_predictor_68_face_landmarks.dat"
+    detector = dlib.get_frontal_face_detector()
+    predictor = dlib.shape_predictor(p)
+    tmp = img
+    rects = detector(img, 0)
+    # For each detected face, find the landmark.
+    # print(rects)
+    for (i, rect) in enumerate(rects):
+        # Make the prediction and transfom it to numpy array
+        shape = predictor(img, rect)
+        shape = face_utils.shape_to_np(shape)
+
+        # Draw on our image, all the finded cordinate points (x,y)
+        for (x, y) in shape:
+            cv2.circle(tmp, (x, y), 1, (0, 255, 0), -1)
+
+    return to_pil_image(tmp)
