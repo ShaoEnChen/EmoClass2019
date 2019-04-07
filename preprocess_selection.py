@@ -130,7 +130,7 @@ def train_validation_for_preprocess_selection(train_set,transform_train):
 
 def select_best_preprocess(object):
 
-    if !isinstance(object ,dict):
+    if not isinstance(object ,dict):
         raiseTypeError("Type Error")
 
     return max(object.items(), key=operator.itemgetter(1))[0]
