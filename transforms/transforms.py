@@ -23,7 +23,7 @@ __all__ = ["Compose", "ToTensor", "ToPILImage", "Normalize", "Resize", "Scale", 
            "Lambda", "RandomCrop", "RandomHorizontalFlip", "RandomVerticalFlip", "RandomResizedCrop",
            "RandomSizedCrop", "FiveCrop", "TenCrop", "LinearTransformation", "ColorJitter", "RandomRotation",
            "Grayscale", "RandomGrayscale", "HistogramEqualization", "RotationByEyesAngle", "Blur",
-           "GaussianBlur", "Sharpen", "FacialLandmark"]
+           "GaussianBlur", "Sharpen", "FacialLandmark", "GammaCorrection"]
 
 
 class Compose(object):
@@ -787,3 +787,13 @@ class FacialLandmark(object):
             PIL Image: Image with facial landmarks
         """
         return F.get_facial_landmark(img)
+
+
+class GammaCorrection(object):
+
+    def __init__(self, gamma = 1):
+        self.gamma = gamma
+
+    def __call__(self, img):
+
+        return F.adjust_gamma(img)
