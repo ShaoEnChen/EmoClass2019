@@ -14,15 +14,19 @@ cfg = {
 
 
 class VGG(nn.Module):
-    def __init__(self, vgg_name):
+    def __init__(self, vgg_name, upscale):
         super(VGG, self).__init__()
         self.features = self._make_layers(cfg[vgg_name])
-        self.classifier = nn.Linear(512, 7)
+        if upscale:
+            self.classifier = nn.Linear(12800, 7)
+        else:
+            self.classifier = nn.Linear(512, 7)
 
     def forward(self, x):
         out = self.features(x)
         out = out.view(out.size(0), -1)
         out = F.dropout(out, p=0.5, training=self.training)
+        
         out = self.classifier(out)
         return out
 

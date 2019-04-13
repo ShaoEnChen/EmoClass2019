@@ -19,11 +19,8 @@ class FER2013(Dataset):
 
     def __getitem__(self, index):
         data = self.data[index]
-        image = np.asarray(Image.open(data[0]))
+        image = Image.open(data[0])
         label = data[1]
-        image = image[:, :, np.newaxis]
-        image = np.concatenate((image, image, image), axis=2)
-        image = Image.fromarray(image.astype('uint8'))
         if self.transform is not None:
             image = self.transform(image)
         return image, label
