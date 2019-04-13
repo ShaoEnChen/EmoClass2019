@@ -1,6 +1,7 @@
 import argparse
 import os
 import csv
+import random
 import numpy as np
 import torch
 import torch.nn as nn
@@ -16,6 +17,7 @@ parser.add_argument('--dataset', type=str, default='FER2013', help='dataset')
 parser.add_argument('--bs', type=int, default=64, help='batch size')
 parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
 parser.add_argument('--save-path', type=str, default='checkpoints/best_model.t7', help='path to save model')
+
 # Preprocessing
 parser.add_argument('--blur', type=bool, default=False, help='Preprocess: whether to blur inputs')
 parser.add_argument('--gs-blur', type=bool, default=False, help='Preprocess: whether to gaussian blur inputs')
@@ -26,13 +28,19 @@ parser.add_argument('--gamma-correct', type=bool, default=False, help='Preproces
 parser.add_argument('--gamma', type=int, default=0.5, help='Preprocess: gamma value for correction')
 parser.add_argument('--hist-equal', type=bool, default=False, help='Preprocess: whether to do histogram equalization')
 parser.add_argument('--upscale', type=bool, default=False, help='Preprocess: whether to quadruple input pixels')
+
 args = parser.parse_args()
 
-crop_size = 44
-
-train_file = 'data/Train_Data.csv'
-val_file = 'data/Validation_Data.csv'
-test_file = 'data/Test_Data.csv'
+if args.upscale:
+    crop_size = 188
+    train_file = 'data/train_x4.csv'
+    val_file = 'data/validation_x4.csv'
+    test_file = 'data/test_x4.csv'
+else:
+    crop_size = 44
+    train_file = 'data/train.csv'
+    val_file = 'data/validation.csv'
+    test_file = 'data/test.csv'
 
 use_cuda = torch.cuda.is_available()
 
@@ -53,19 +61,11 @@ if not os.path.exists(os.path.dirname(args.save_path)):
 print('Preparing data...')
 
 def read_data(file_name):
-    images = []
-    labels = []
     with open(file_name, 'r') as f:
-        data = csv.reader(f)
-        next(data)
-        for row in data:
-            image = np.asarray([int(x) for x in row[1].split()])
-            images.append(image)
-            labels.append(int(row[0]))
-    images = np.asarray(images)
-    labels = np.asarray(labels)
-    images = images.reshape((images.shape[0], 48, 48))
-    return images, labels
+        data = list(csv.reader(f))
+        data = [[d[0], int(d[1])] for d in data]
+        random.shuffle(data)
+    return data
 
 transform_train = [
     transforms.RandomCrop(crop_size),
@@ -117,7 +117,7 @@ test_loader = torch.utils.data.DataLoader(test_set, batch_size=args.bs, shuffle=
 print('Building model...')
 
 if args.model == 'VGG19':
-    net = VGG('VGG19')
+    net = VGG('VGG19', args.upscale)
 elif args.model  == 'Resnet18':
     net = ResNet18()
 
