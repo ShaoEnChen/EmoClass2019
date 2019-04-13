@@ -6,3 +6,14 @@ FER2013 is a large-scale dataset collected automatically by the Google image sea
 
 ### Problem Outcomes
 We plan to explore and generate different features and demonstrate the outcome’s dependency on these features and we hope to achieve state-of-the-art emotion classification accuracy on facial images. Experiments will be conducted to compare our approach with the baseline approaches. 
+
+### Dependencies
+- Python 3.5
+- PyTorch 1.0
+
+### Train and evaluate model
+    python main.py --model VGG19 --bs 64 --lr 0.01 --save-path checkpoints/best_model_vgg19.t7
+
+### Results
+- Model:    VGG19; the best validation accuracy: 70.967%; testing accuracy: 72.834%
+- Model: Resnet18; the best validation accuracy: 71.441%; testing accuracy: 72.778% 
