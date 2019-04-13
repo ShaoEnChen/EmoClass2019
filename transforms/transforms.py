@@ -796,4 +796,4 @@ class GammaCorrection(object):
 
     def __call__(self, img):
 
-        return F.adjust_gamma(img)
+        return F.adjust_gamma(img, self.gamma)
