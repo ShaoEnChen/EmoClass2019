@@ -770,6 +770,7 @@ def get_facial_landmark(img):
     p = "transforms/shape_predictor_68_face_landmarks.dat"
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor(p)
+    img = np.asarray(img)
     tmp = img
     rects = detector(img, 0)
     # For each detected face, find the landmark.
