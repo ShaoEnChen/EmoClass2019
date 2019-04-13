@@ -8,17 +8,22 @@ try:
 except ImportError:
     accimage = None
 import numpy as np
+from numpy import linalg as LA
 import numbers
 import types
 import collections
 import warnings
+from imutils import face_utils
+import dlib
+import cv2
 
 from . import functional as F
 
 __all__ = ["Compose", "ToTensor", "ToPILImage", "Normalize", "Resize", "Scale", "CenterCrop", "Pad",
            "Lambda", "RandomCrop", "RandomHorizontalFlip", "RandomVerticalFlip", "RandomResizedCrop",
            "RandomSizedCrop", "FiveCrop", "TenCrop", "LinearTransformation", "ColorJitter", "RandomRotation",
-           "Grayscale", "RandomGrayscale"]
+           "Grayscale", "RandomGrayscale", "HistogramEqualization", "RotationByEyesAngle", "Blur",
+           "GaussianBlur", "Sharpen", "FacialLandmark", "GammaCorrection"]
 
 
 class Compose(object):
@@ -693,3 +698,102 @@ class RandomGrayscale(object):
         if random.random() < self.p:
             return F.to_grayscale(img, num_output_channels=num_output_channels)
         return img
+
+
+class HistogramEqualization(object):
+
+    def __call__(self, img):
+        """
+        Args:
+            PIL Image: Image to be histogram-equalized
+
+        Returns:
+            PIL Image: Image histogram-equalized.
+        """
+        return F.histogram_equalize(img)
+
+
+class RotationByEyesAngle(object):
+
+    def __call__(self, img):
+        """
+        Args:
+            PIL Image: Image to be rotated
+
+        Returns:
+            PIL Image: Depending on how many eyes detected and validated:
+              (< 2): The original image
+                (2): Image rotated by the horizontal angle of the line connecting the two eyes
+              (> 2): Image rotated by the horizontal angle of the line connecting the two most possible eyes
+        """
+        return F.rotate_by_eyes_angle(img)
+
+
+class Blur(object):
+
+    def __init__(self, filter_size = 3):
+        if not isinstance(filter_size, numbers.Number):
+            raise TypeError('filter size should be a Number. Got {}'.format(type(filter_size)))
+
+        if not (filter_size > 0 and filter_size & 1):
+            raise ValueError('filter size should be a positive and odd number')
+
+        self.filter_size = filter_size
+
+    def __call__(self, img):
+        return F.blur(img, self.filter_size)
+
+
+class GaussianBlur(object):
+    # highly effective in removing gaussian noise from the image
+
+    def __init__(self, filter_size = 3):
+        if not isinstance(filter_size, numbers.Number):
+            raise TypeError('filter size should be a Number. Got {}'.format(type(filter_size)))
+
+        if not (filter_size > 0 and filter_size & 1):
+            raise ValueError('filter size should be a positive and odd number')
+
+        self.filter_size = filter_size
+
+    def __call__(self, img):
+        return F.gaussian_blur(img, self.filter_size)
+
+
+class Sharpen(object):
+
+    def __call__(self, img):
+        """
+        Args:
+            PIL Image: Image to be Sharpened by a kernel:
+            [[-1, -1, -1],
+             [-1, 9, -1],
+             [-1, -1, -1]]
+
+        Returns:
+            PIL Image: Image sharpened.
+        """
+        return F.sharpen(img)
+
+
+class FacialLandmark(object):
+
+    def __call__(self, img):
+        """
+        Args:
+            PIL Image: Image to draw facial landmarks
+
+        Returns:
+            PIL Image: Image with facial landmarks
+        """
+        return F.get_facial_landmark(img)
+
+
+class GammaCorrection(object):
+
+    def __init__(self, gamma = 1):
+        self.gamma = gamma
+
+    def __call__(self, img):
+
+        return F.adjust_gamma(img)

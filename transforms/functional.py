@@ -8,10 +8,14 @@ try:
 except ImportError:
     accimage = None
 import numpy as np
+from numpy import linalg as LA
 import numbers
 import types
 import collections
 import warnings
+from imutils import face_utils
+import dlib
+import cv2
 
 
 def _is_pil_image(img):
@@ -577,3 +581,206 @@ def to_grayscale(img, num_output_channels=1):
         raise ValueError('num_output_channels should be either 1 or 3')
 
     return img
+
+# =================================================
+# Below are more customed preprocessing methods
+# =================================================
+
+def get_cdf(img):
+    # input: numpy array
+    # output: numpy array
+
+    if not isinstance(img, np.ndarray):
+        raise TypeError('img should be a Numpy array. Got {}'.format(type(img)))
+
+    hist, bins = np.histogram(img.flatten(), 256, [0,256])
+    cdf = hist.cumsum()
+
+    cdf_m = np.ma.masked_equal(cdf, 0) # remove zeros
+    cdf_m = 255 * (cdf_m - cdf_m.min()) / (cdf_m.max() - cdf_m.min())
+    cdf = np.ma.filled(cdf_m, 0).astype('uint8')
+
+    return cdf
+
+
+def histogram_equalize(img):
+    # input: PIL.image
+    # output: PIL.image
+    if not _is_pil_image(img):
+        raise TypeError('img should be PIL Image. Got {}'.format(type(img)))
+
+    img = np.asarray(img)
+    hist_equalized_img = cv2.LUT(img, get_cdf(img))
+
+    return to_pil_image(hist_equalized_img)
+
+
+def validate_eyes(eyes):
+    if not isinstance(eyes, (list, np.ndarray)):
+        raise TypeError('eyes should be a list-type object. Got {}'.format(type(img)))
+
+    if len(eyes) <= 1: # only 1 eye found, no roration conducted
+        return -1
+
+    eye_points = np.zeros((len(eyes), 2), dtype='uint8')
+    count = 0
+    for i, (ex, ey, ew, eh) in enumerate(eyes):
+        # Ignore eyes below the center horizontal line
+        if ey + (eh + 1) / 2 > center_h:
+            continue
+
+        eye_points[count, 0] = int(ex + (ew + 1) / 2)
+        eye_points[count, 1] = int(ey + (eh + 1) / 2)
+        count += 1
+
+    if count < 2: # only 1 eye valid, no roration conducted
+        return -1
+
+    eye_points = eye_points[eye_points[:, 1].argsort()]
+    eyedist = {}
+
+    # Remove invalid eyes
+    rmIdx = []
+    for i, point in enumerate(eye_points):
+        if point[0] == point[1] == 0:
+            rmIdx.append(i)
+        else:
+            eyedist[i] = math.sqrt((point[0] - center_w) ** 2 + (point[1] - center_h) ** 2)
+
+    redundantDist = sorted(eyedist.items(), key = lambda x: x[1])[2:]
+    for (i, dist) in redundantDist:
+        rmIdx.append(i)
+    eye_points = np.delete(eye_points, rmIdx, 0)
+
+    return eye_points
+
+
+def get_eye_angle_params(eye_points):
+    if not isinstance(eye_points, (list, np.ndarray)):
+        raise TypeError('eye points should be a list-type object. Got {}'.format(type(img)))
+
+    if eye_points[0, 0] < eye_points[1, 0]:
+        v1 = np.array([(float(eye_points[0, 0]) - float(eye_points[1, 0])), float(eye_points[0, 1]) - float(eye_points[1, 1])], dtype='float')
+        v2 = np.array([(float(eye_points[0, 0]) - float(eye_points[1, 0])), float(eye_points[1, 1]) - float(eye_points[1, 1])], dtype='float')
+        sign = 1
+
+    else:
+        v1 = np.array([(float(eye_points[1, 0]) - float(eye_points[0, 0])), float(eye_points[1, 1]) - float(eye_points[0, 1])], dtype='float')
+        v2 = np.array([(float(eye_points[1, 0]) - float(eye_points[0, 0])), float(eye_points[0, 1]) - float(eye_points[0, 1])], dtype='float')
+        sign = -1
+
+    len1 = LA.norm(v1, 2)
+    len2 = LA.norm(v2, 2)
+    angle = math.acos(np.dot(v1, v2) / (len1 * len2)) * 180 / math.pi
+
+    return sign, angle
+
+
+def rotate_by_eyes_angle(img):
+    # input: PIL.image
+    # output: PIL.image
+
+    if not _is_pil_image(img):
+        raise TypeError('img should be PIL Image. Got {}'.format(type(img)))
+
+    img = np.asarray(img)
+    ori_w = ori_h = int(math.sqrt(len(img)))
+    center_w = center_h = int(ori_w / 2)
+
+    # Get eyes from cv2 built-in methods
+    eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
+    eyes = eye_cascade.detectMultiScale(img, 1.05, 5)
+    eye_points = validate_eyes(eyes)
+    if isinstance(eye_points, int) and eye_points == -1:
+        return to_pil_image(img)
+
+    # Start image rotation by the horizontal angle
+    (sign, angle) = get_eye_angle_params(eye_points)
+    if angle > 40:
+        return to_pil_image(img)
+
+    M = cv2.getRotationMatrix2D((center_w, center_h), sign * angle, 1.0)
+    rotated_img = cv2.warpAffine(img, M, (ori_w, ori_h))
+
+    return to_pil_image(rotated_img)
+
+
+def blur(img, filter_size = 3):
+    # input: PIL.image
+    # output: PIL.image
+
+    if not _is_pil_image(img):
+        raise TypeError('img should be PIL Image. Got {}'.format(type(img)))
+
+    if not isinstance(filter_size, numbers.Number):
+        raise TypeError('filter size should be a Number. Got {}'.format(type(filter_size)))
+
+    if not (filter_size > 0 and filter_size & 1):
+        raise ValueError('filter size should be a positive and odd number')
+
+    img = np.asarray(img)
+    blurred_img = cv2.blur(img, (filter_size, filter_size))
+
+    return to_pil_image(blurred_img)
+
+
+# Gaussian blurring is highly effective in removing gaussian noise from the image.
+def gaussian_blur(img, filter_size = 3):
+    # input: PIL.image
+    # output: PIL.image
+
+    if not _is_pil_image(img):
+        raise TypeError('img should be PIL Image. Got {}'.format(type(img)))
+
+    if not isinstance(filter_size, numbers.Number):
+        raise TypeError('filter size should be a Number. Got {}'.format(type(filter_size)))
+
+    if not (filter_size > 0 and filter_size & 1):
+        raise ValueError('filter size should be a positive and odd number')
+
+    img = np.asarray(img)
+    blurred_img = cv2.GaussianBlur(img, (filter_size, filter_size), 0)
+
+    return to_pil_image(blurred_img)
+
+
+def sharpen(img):
+    # input: PIL.image
+    # output: PIL.image
+
+    if not _is_pil_image(img):
+        raise TypeError('img should be PIL Image. Got {}'.format(type(img)))
+
+    '''
+    kernel = np.array([[0, 1, 0],
+                       [1, -4, 1],
+                       [0, 1, 0]])
+    '''
+    kernel = np.array([[-1, -1, -1],
+                       [-1, 9, -1],
+                       [-1, -1, -1]])
+
+    img = np.asarray(img)
+    sharpened_img = cv2.filter2D(img, -1, kernel)
+
+    return to_pil_image(sharpened_img)
+
+
+def get_facial_landmark(img):
+    p = "shape_predictor_68_face_landmarks.dat"
+    detector = dlib.get_frontal_face_detector()
+    predictor = dlib.shape_predictor(p)
+    tmp = img
+    rects = detector(img, 0)
+    # For each detected face, find the landmark.
+    # print(rects)
+    for (i, rect) in enumerate(rects):
+        # Make the prediction and transfom it to numpy array
+        shape = predictor(img, rect)
+        shape = face_utils.shape_to_np(shape)
+
+        # Draw on our image, all the finded cordinate points (x,y)
+        for (x, y) in shape:
+            cv2.circle(tmp, (x, y), 1, (0, 255, 0), -1)
+
+    return to_pil_image(tmp)

@@ -17,7 +17,18 @@ parser.add_argument('--dataset', type=str, default='FER2013', help='dataset')
 parser.add_argument('--bs', type=int, default=64, help='batch size')
 parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
 parser.add_argument('--save-path', type=str, default='checkpoints/best_model.t7', help='path to save model')
+
+# Preprocessing
+parser.add_argument('--blur', type=bool, default=False, help='Preprocess: whether to blur inputs')
+parser.add_argument('--gs-blur', type=bool, default=False, help='Preprocess: whether to gaussian blur inputs')
+parser.add_argument('--sharpen', type=bool, default=False, help='Preprocess: whether to sharpen inputs')
+parser.add_argument('--landmark', type=bool, default=False, help='Preprocess: whether to add facial landmarks')
+parser.add_argument('--angle-correct', type=bool, default=False, help='Preprocess: whether to do face angle correction')
+parser.add_argument('--gamma-correct', type=bool, default=False, help='Preprocess: whether to do gamma correction')
+parser.add_argument('--gamma', type=int, default=0.5, help='Preprocess: gamma value for correction')
+parser.add_argument('--hist-equal', type=bool, default=False, help='Preprocess: whether to do histogram equalization')
 parser.add_argument('--upscale', type=bool, default=False, help='Preprocess: whether to quadruple input pixels')
+
 args = parser.parse_args()
 
 if args.upscale:
@@ -56,16 +67,44 @@ def read_data(file_name):
         random.shuffle(data)
     return data
 
-transform_train = transforms.Compose([
+transform_train = [
     transforms.RandomCrop(crop_size),
     transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-])
+    transforms.ToTensor()
+]
 
-transform_test = transforms.Compose([
+transform_test = [
     transforms.TenCrop(crop_size),
     transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
-])
+]
+
+# Add preprocessing transformations according to the arguments
+if args.blur == True:
+    transform_train.append(transforms.Blur())
+    transform_test.append(transforms.Blur())
+if args.gs_blur == True:
+    transform_train.append(transforms.GaussianBlur())
+    transform_test.append(transforms.GaussianBlur())
+if args.sharpen == True:
+    transform_train.append(transforms.Sharpen())
+    transform_test.append(transforms.Sharpen())
+if args.landmark == True:
+    transform_train.append(transforms.FacialLandmark())
+    transform_test.append(transforms.FacialLandmark())
+if args.angle_correct == True:
+    transform_train.append(transforms.RotationByEyesAngle())
+    transform_test.append(transforms.RotationByEyesAngle())
+if args.gamma_correct == True:
+    transform_train.append(transforms.GammaCorrection(args.gamma))
+    transform_test.append(transforms.GammaCorrection(args.gamma))
+if args.hist_equal == True:
+    transform_train.append(transforms.HistogramEqualization())
+    transform_test.append(transforms.HistogramEqualization())
+# if args.upscale == True:
+    # use upscaled images as input
+
+transform_train = transforms.Compose(transform_train)
+transform_test = transforms.Compose(transform_test)
 
 train_set = FER2013(read_data(train_file), transform=transform_train)
 train_loader = torch.utils.data.DataLoader(train_set, batch_size=args.bs, shuffle=True, num_workers=1)
@@ -95,7 +134,7 @@ def train(epoch):
     train_loss = 0.0
     correct = 0.0
     total = 0.0
-    
+
     if epoch > learning_rate_decay_start and learning_rate_decay_start >= 0:
         frac = (epoch - learning_rate_decay_start) // learning_rate_decay_every
         decay_factor = learning_rate_decay_rate ** frac
@@ -130,7 +169,7 @@ def val(epoch):
     val_loss = 0.0
     correct = 0.0
     total = 0.0
-    
+
     for batch_idx, (inputs, targets) in enumerate(val_loader):
         bs, ncrops, c, h, w = np.shape(inputs)
         inputs = inputs.view(-1, c, h, w)
@@ -145,7 +184,7 @@ def val(epoch):
         correct += predicted.eq(targets.detach()).cpu().sum().item()
         utils.progress_bar(batch_idx, len(val_loader), 'Loss: {:.3f} | Acc: {:.3f}% ({:.0f}/{:.0f})'\
                            .format(val_loss / (batch_idx + 1), correct / total * 100, correct, total))
-    
+
     # Save checkpoint
     val_acc = correct / total * 100
     if val_acc > best_val_acc:
@@ -172,7 +211,7 @@ def test():
     test_loss = 0.0
     correct = 0.0
     total = 0.0
-    
+
     for batch_idx, (inputs, targets) in enumerate(test_loader):
         bs, ncrops, c, h, w = np.shape(inputs)
         inputs = inputs.view(-1, c, h, w)
@@ -187,7 +226,7 @@ def test():
         correct += predicted.eq(targets.detach()).cpu().sum().item()
         utils.progress_bar(batch_idx, len(test_loader), 'Loss: {:.3f} | Acc: {:.3f}% ({:.0f}/{:.0f})'\
                            .format(test_loss / (batch_idx + 1), correct / total * 100, correct, total))
-    
+
     return correct / total * 100
 
 for epoch in range(start_epoch, total_epoch):
