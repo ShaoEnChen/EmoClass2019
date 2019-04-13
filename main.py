@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import transforms as transforms
+from fer2013 import FER2013
 from models import *
 import utils
 
@@ -20,13 +21,11 @@ parser.add_argument('--upscale', type=bool, default=False, help='Preprocess: whe
 args = parser.parse_args()
 
 if args.upscale:
-    from fer2013_x4 import FER2013
     crop_size = 188
     train_file = 'data/train_x4.csv'
     val_file = 'data/validation_x4.csv'
     test_file = 'data/test_x4.csv'
 else:
-    from fer2013 import FER2013
     crop_size = 44
     train_file = 'data/train.csv'
     val_file = 'data/validation.csv'
