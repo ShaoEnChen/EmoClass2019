@@ -616,9 +616,10 @@ def histogram_equalize(img):
 
 
 def validate_eyes(eyes, img, center_w, center_h):
+    '''
     if not isinstance(eyes, (list, np.ndarray)):
         raise TypeError('eyes should be a list-type object. Got {}'.format(type(img)))
-
+    '''
     if len(eyes) <= 1: # only 1 eye found, no roration conducted
         return -1
 
@@ -684,7 +685,7 @@ def rotate_by_eyes_angle(img):
         raise TypeError('img should be PIL Image. Got {}'.format(type(img)))
 
     img = np.asarray(img)
-    ori_w = ori_h = int(math.sqrt(len(img)))
+    ori_w = ori_h = int(len(img))
     center_w = center_h = int(ori_w / 2)
 
     # Get eyes from cv2 built-in methods
