@@ -615,10 +615,11 @@ def histogram_equalize(img):
     return to_pil_image(hist_equalized_img)
 
 
-def validate_eyes(eyes):
+def validate_eyes(eyes, img, center_w, center_h):
+    '''
     if not isinstance(eyes, (list, np.ndarray)):
         raise TypeError('eyes should be a list-type object. Got {}'.format(type(img)))
-
+    '''
     if len(eyes) <= 1: # only 1 eye found, no roration conducted
         return -1
 
@@ -684,13 +685,13 @@ def rotate_by_eyes_angle(img):
         raise TypeError('img should be PIL Image. Got {}'.format(type(img)))
 
     img = np.asarray(img)
-    ori_w = ori_h = int(math.sqrt(len(img)))
+    ori_w = ori_h = int(len(img))
     center_w = center_h = int(ori_w / 2)
 
     # Get eyes from cv2 built-in methods
-    eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
+    eye_cascade = cv2.CascadeClassifier('transforms/haarcascade_eye.xml')
     eyes = eye_cascade.detectMultiScale(img, 1.05, 5)
-    eye_points = validate_eyes(eyes)
+    eye_points = validate_eyes(eyes, img, center_w, center_h)
     if isinstance(eye_points, int) and eye_points == -1:
         return to_pil_image(img)
 
@@ -767,9 +768,10 @@ def sharpen(img):
 
 
 def get_facial_landmark(img):
-    p = "shape_predictor_68_face_landmarks.dat"
+    p = "transforms/shape_predictor_68_face_landmarks.dat"
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor(p)
+    img = np.asarray(img)
     tmp = img
     rects = detector(img, 0)
     # For each detected face, find the landmark.

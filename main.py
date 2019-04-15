@@ -70,38 +70,37 @@ def read_data(file_name):
 transform_train = [
     transforms.RandomCrop(crop_size),
     transforms.RandomHorizontalFlip(),
-    transforms.ToTensor()
 ]
 
 transform_test = [
     transforms.TenCrop(crop_size),
-    transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
 ]
 
 # Add preprocessing transformations according to the arguments
 if args.blur == True:
     transform_train.append(transforms.Blur())
-    transform_test.append(transforms.Blur())
+    transform_test.append(transforms.Lambda(lambda crops: [transforms.Blur()(crop) for crop in crops]))
 if args.gs_blur == True:
     transform_train.append(transforms.GaussianBlur())
-    transform_test.append(transforms.GaussianBlur())
+    transform_test.append(transforms.Lambda(lambda crops: [transforms.GaussianBlur()(crop) for crop in crops]))
 if args.sharpen == True:
     transform_train.append(transforms.Sharpen())
-    transform_test.append(transforms.Sharpen())
+    transform_test.append(transforms.Lambda(lambda crops: [transforms.Sharpen()(crop) for crop in crops]))
 if args.landmark == True:
     transform_train.append(transforms.FacialLandmark())
-    transform_test.append(transforms.FacialLandmark())
+    transform_test.append(transforms.Lambda(lambda crops: [transforms.FacialLandmark()(crop) for crop in crops]))
 if args.angle_correct == True:
     transform_train.append(transforms.RotationByEyesAngle())
-    transform_test.append(transforms.RotationByEyesAngle())
+    transform_test.append(transforms.Lambda(lambda crops: [transforms.RotationByEyesAngle()(crop) for crop in crops]))
 if args.gamma_correct == True:
     transform_train.append(transforms.GammaCorrection(args.gamma))
-    transform_test.append(transforms.GammaCorrection(args.gamma))
+    transform_test.append(transforms.Lambda(lambda crops: [transforms.GammaCorrection(args.gamma)(crop) for crop in crops]))
 if args.hist_equal == True:
     transform_train.append(transforms.HistogramEqualization())
-    transform_test.append(transforms.HistogramEqualization())
-# if args.upscale == True:
-    # use upscaled images as input
+    transform_test.append(transforms.Lambda(lambda crops: [transforms.HistogramEqualization()(crop) for crop in crops]))
+
+transform_train.append(transforms.ToTensor())
+transform_test.append(transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])))
 
 transform_train = transforms.Compose(transform_train)
 transform_test = transforms.Compose(transform_test)
