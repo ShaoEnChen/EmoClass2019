@@ -162,72 +162,74 @@ def train(epoch):
 
 # Do validation
 def val(epoch):
-    print('Doing validation...')
-    global best_val_acc
-    global best_val_acc_epoch
-    net.eval()
-    val_loss = 0.0
-    correct = 0.0
-    total = 0.0
+    with torch.no_grad():
+        print('Doing validation...')
+        global best_val_acc
+        global best_val_acc_epoch
+        net.eval()
+        val_loss = 0.0
+        correct = 0.0
+        total = 0.0
 
-    for batch_idx, (inputs, targets) in enumerate(val_loader):
-        bs, ncrops, c, h, w = np.shape(inputs)
-        inputs = inputs.view(-1, c, h, w)
-        if use_cuda:
-            inputs, targets = inputs.cuda(), targets.cuda()
-        outputs = net(inputs)
-        outputs_avg = outputs.view(bs, ncrops, -1).mean(1)
-        loss = criterion(outputs_avg, targets)
-        val_loss += loss.item()
-        _, predicted = torch.max(outputs_avg.detach(), 1)
-        total += targets.size(0)
-        correct += predicted.eq(targets.detach()).cpu().sum().item()
-        utils.progress_bar(batch_idx, len(val_loader), 'Loss: {:.3f} | Acc: {:.3f}% ({:.0f}/{:.0f})'\
-                           .format(val_loss / (batch_idx + 1), correct / total * 100, correct, total))
+        for batch_idx, (inputs, targets) in enumerate(val_loader):
+            bs, ncrops, c, h, w = np.shape(inputs)
+            inputs = inputs.view(-1, c, h, w)
+            if use_cuda:
+                inputs, targets = inputs.cuda(), targets.cuda()
+            outputs = net(inputs)
+            outputs_avg = outputs.view(bs, ncrops, -1).mean(1)
+            loss = criterion(outputs_avg, targets)
+            val_loss += loss.item()
+            _, predicted = torch.max(outputs_avg.detach(), 1)
+            total += targets.size(0)
+            correct += predicted.eq(targets.detach()).cpu().sum().item()
+            utils.progress_bar(batch_idx, len(val_loader), 'Loss: {:.3f} | Acc: {:.3f}% ({:.0f}/{:.0f})'\
+                               .format(val_loss / (batch_idx + 1), correct / total * 100, correct, total))
 
-    # Save checkpoint
-    val_acc = correct / total * 100
-    if val_acc > best_val_acc:
-        print('Saving checkpoint...')
-        print('best_val_acc: {:.3f}'.format(val_acc))
-        state = {
-            'net': net.state_dict() if use_cuda else net,
-            'acc': val_acc,
-            'epoch': epoch,
-        }
-        torch.save(state, args.save_path)
-        best_val_acc = val_acc
-        best_val_acc_epoch = epoch
+        # Save checkpoint
+        val_acc = correct / total * 100
+        if val_acc > best_val_acc:
+            print('Saving checkpoint...')
+            print('best_val_acc: {:.3f}'.format(val_acc))
+            state = {
+                'net': net.state_dict() if use_cuda else net,
+                'acc': val_acc,
+                'epoch': epoch,
+            }
+            torch.save(state, args.save_path)
+            best_val_acc = val_acc
+            best_val_acc_epoch = epoch
 
 # Test
 def test():
-    print('Testing...')
-    checkpoint = torch.load(args.save_path)
-    if use_cuda:
-        net.load_state_dict(checkpoint['net'])
-    else:
-        net = checkpoint['net']
-    net.eval()
-    test_loss = 0.0
-    correct = 0.0
-    total = 0.0
-
-    for batch_idx, (inputs, targets) in enumerate(test_loader):
-        bs, ncrops, c, h, w = np.shape(inputs)
-        inputs = inputs.view(-1, c, h, w)
+    with torch.no_grad():
+        print('Testing...')
+        checkpoint = torch.load(args.save_path)
         if use_cuda:
-            inputs, targets = inputs.cuda(), targets.cuda()
-        outputs = net(inputs)
-        outputs_avg = outputs.view(bs, ncrops, -1).mean(1)
-        loss = criterion(outputs_avg, targets)
-        test_loss += loss.item()
-        _, predicted = torch.max(outputs_avg.detach(), 1)
-        total += targets.size(0)
-        correct += predicted.eq(targets.detach()).cpu().sum().item()
-        utils.progress_bar(batch_idx, len(test_loader), 'Loss: {:.3f} | Acc: {:.3f}% ({:.0f}/{:.0f})'\
-                           .format(test_loss / (batch_idx + 1), correct / total * 100, correct, total))
+            net.load_state_dict(checkpoint['net'])
+        else:
+            net = checkpoint['net']
+        net.eval()
+        test_loss = 0.0
+        correct = 0.0
+        total = 0.0
 
-    return correct / total * 100
+        for batch_idx, (inputs, targets) in enumerate(test_loader):
+            bs, ncrops, c, h, w = np.shape(inputs)
+            inputs = inputs.view(-1, c, h, w)
+            if use_cuda:
+                inputs, targets = inputs.cuda(), targets.cuda()
+            outputs = net(inputs)
+            outputs_avg = outputs.view(bs, ncrops, -1).mean(1)
+            loss = criterion(outputs_avg, targets)
+            test_loss += loss.item()
+            _, predicted = torch.max(outputs_avg.detach(), 1)
+            total += targets.size(0)
+            correct += predicted.eq(targets.detach()).cpu().sum().item()
+            utils.progress_bar(batch_idx, len(test_loader), 'Loss: {:.3f} | Acc: {:.3f}% ({:.0f}/{:.0f})'\
+                               .format(test_loss / (batch_idx + 1), correct / total * 100, correct, total))
+
+        return correct / total * 100
 
 for epoch in range(start_epoch, total_epoch):
     print('Epoch: {}'.format(epoch))
