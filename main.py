@@ -173,7 +173,7 @@ def val(epoch):
         correct = 0.0
         total = 0.0
 
-        #val_loss_his = []
+        val_loss_his = []
         val_acc_his = []
 
         for batch_idx, (inputs, targets) in enumerate(val_loader):
@@ -191,7 +191,7 @@ def val(epoch):
             utils.progress_bar(batch_idx, len(val_loader), 'Loss: {:.3f} | Acc: {:.3f}% ({:.0f}/{:.0f})'\
                                .format(val_loss / (batch_idx + 1), correct / total * 100, correct, total))
 
-        #val_loss_his.append(val_loss)
+        val_loss_his.append(val_loss / (batch_idx + 1))
 
         # Save checkpoint
         val_acc = correct / total * 100
@@ -203,6 +203,7 @@ def val(epoch):
                 'net': net.state_dict() if use_cuda else net,
                 'acc': val_acc,
                 'acc_history': val_acc_his,
+                'loss_history': val_loss_his,
                 'epoch': epoch,
             }
             torch.save(state, os.path.join(args.save_path, "best_model.t7"))
@@ -215,6 +216,7 @@ def val(epoch):
                 'net': net.state_dict() if use_cuda else net,
                 'acc': val_acc,
                 'acc_history': val_acc_his,
+                'loss_history': val_loss_his,
                 'epoch': epoch,
         }
         torch.save(state, os.path.join(args.save_path, "model_{}.t7".format(epoch)))
