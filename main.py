@@ -14,7 +14,8 @@ import utils
 parser = argparse.ArgumentParser(description='Facial Expression Recognition')
 parser.add_argument('--model', type=str, default='VGG19', help='network architecture')
 parser.add_argument('--dataset', type=str, default='FER2013', help='dataset')
-parser.add_argument('--bs', type=int, default=64, help='batch size')
+parser.add_argument('--bs', type=int, default=128, help='batch size')
+parser.add_argument('--bs_vt', type=int, default=8, help='batch size')
 parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
 parser.add_argument('--save-path', type=str, default='checkpoints/best_model.t7', help='path to save model')
 
@@ -108,9 +109,9 @@ transform_test = transforms.Compose(transform_test)
 train_set = FER2013(read_data(train_file), transform=transform_train)
 train_loader = torch.utils.data.DataLoader(train_set, batch_size=args.bs, shuffle=True, num_workers=1)
 val_set = FER2013(read_data(val_file), transform=transform_test)
-val_loader = torch.utils.data.DataLoader(val_set, batch_size=args.bs, shuffle=False, num_workers=1)
+val_loader = torch.utils.data.DataLoader(val_set, batch_size=args.bs_vt, shuffle=False, num_workers=1)
 test_set = FER2013(read_data(test_file), transform=transform_test)
-test_loader = torch.utils.data.DataLoader(test_set, batch_size=args.bs, shuffle=False, num_workers=1)
+test_loader = torch.utils.data.DataLoader(test_set, batch_size=args.bs_vt, shuffle=False, num_workers=1)
 
 # Build model
 print('Building model...')
