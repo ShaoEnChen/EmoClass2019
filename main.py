@@ -162,6 +162,9 @@ def train(epoch):
         utils.progress_bar(batch_idx, len(train_loader), 'Loss: {:.3f} | Acc: {:.3f}% ({:.0f}/{:.0f})'\
                            .format(train_loss / (batch_idx + 1), correct / total * 100, correct, total))
 
+val_loss_his = []
+val_acc_his = []
+
 # Do validation
 def val(epoch):
     with torch.no_grad():
@@ -173,8 +176,6 @@ def val(epoch):
         correct = 0.0
         total = 0.0
 
-        val_loss_his = []
-        val_acc_his = []
 
         for batch_idx, (inputs, targets) in enumerate(val_loader):
             bs, ncrops, c, h, w = np.shape(inputs)
