@@ -14,7 +14,8 @@ import utils
 parser = argparse.ArgumentParser(description='Facial Expression Recognition')
 parser.add_argument('--model', type=str, default='VGG19', help='network architecture')
 parser.add_argument('--dataset', type=str, default='FER2013', help='dataset')
-parser.add_argument('--bs', type=int, default=64, help='batch size')
+parser.add_argument('--bs', type=int, default=64, help='batch size for train')
+parser.add_argument('--bs-vt', type=int, default=8, help='batch size for validation / test')
 parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
 parser.add_argument('--save-path', type=str, default='checkpoints/best_model.t7', help='path to save model')
 
