@@ -18,7 +18,7 @@ parser.add_argument('--dataset', type=str, default='FER2013', help='dataset')
 parser.add_argument('--bs', type=int, default=64, help='batch size for train')
 parser.add_argument('--bs-vt', type=int, default=8, help='batch size for validation / test')
 parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
-parser.add_argument('--save-path', type=str, default='checkpoints/best_model.t7', help='path to save model')
+parser.add_argument('--save-path', type=str, default='checkpoints/', help='path to save model')
 parser.add_argument('--quick_test', type=bool, default=False, help='testing after done ever 20% of epochs')
 
 # Preprocessing
@@ -173,6 +173,9 @@ def val(epoch):
         correct = 0.0
         total = 0.0
 
+        #val_loss_his = []
+        val_acc_his = []
+
         for batch_idx, (inputs, targets) in enumerate(val_loader):
             bs, ncrops, c, h, w = np.shape(inputs)
             inputs = inputs.view(-1, c, h, w)
@@ -188,20 +191,33 @@ def val(epoch):
             utils.progress_bar(batch_idx, len(val_loader), 'Loss: {:.3f} | Acc: {:.3f}% ({:.0f}/{:.0f})'\
                                .format(val_loss / (batch_idx + 1), correct / total * 100, correct, total))
 
+        #val_loss_his.append(val_loss)
+
         # Save checkpoint
         val_acc = correct / total * 100
+        val_acc_his.append(val_acc)
         if val_acc > best_val_acc:
-            print('Saving checkpoint...')
+            print('Updating Best checkpoint...')
             print('best_val_acc: {:.3f}'.format(val_acc))
             state = {
                 'net': net.state_dict() if use_cuda else net,
                 'acc': val_acc,
+                'acc_history': val_acc_his,
                 'epoch': epoch,
             }
-            torch.save(state, args.save_path)
+            torch.save(state, os.path.join(args.save_path, "best_model_{}.t7".format(epoch)))
             best_val_acc = val_acc
             best_val_acc_epoch = epoch
 
+        #save the latest checkpoint
+        print('Updating Latest checkpoint...')
+        state = {
+                'net': net.state_dict() if use_cuda else net,
+                'acc': val_acc,
+                'acc_history': val_acc_his,
+                'epoch': epoch,
+        }
+        torch.save(state, os.path.join(args.save_path, "model_{}.t7".format(epoch)))
 # Test
 def test():
     with torch.no_grad():
