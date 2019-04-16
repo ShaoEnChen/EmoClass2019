@@ -205,7 +205,7 @@ def val(epoch):
                 'acc_history': val_acc_his,
                 'epoch': epoch,
             }
-            torch.save(state, os.path.join(args.save_path, "best_model_{}.t7".format(epoch)))
+            torch.save(state, os.path.join(args.save_path, "best_model.t7"))
             best_val_acc = val_acc
             best_val_acc_epoch = epoch
 
