@@ -18,6 +18,7 @@ parser.add_argument('--bs', type=int, default=64, help='batch size for train')
 parser.add_argument('--bs-vt', type=int, default=8, help='batch size for validation / test')
 parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
 parser.add_argument('--save-path', type=str, default='checkpoints/best_model.t7', help='path to save model')
+parser.add_argument('--quick_test', type=bool, default='False', help='testing after done ever 20% of epochs')
 
 # Preprocessing
 parser.add_argument('--blur', type=bool, default=False, help='Preprocess: whether to blur inputs')
@@ -235,7 +236,12 @@ for epoch in range(start_epoch, total_epoch):
     print('Epoch: {}'.format(epoch))
     train(epoch)
     val(epoch)
+    if args.quick_test and (epoch % (total_epoch * 0.2) == 0):
+        test_and_print_inf()
 
-print('best_val_acc: {:.3f}%'.format(best_val_acc))
-print('best_val_acc_epoch: {}'.format(best_val_acc_epoch))
-print('test_acc: {:.3f}%'.format(test()))
+test_and_print_inf()
+
+def test_and_print_inf():
+    print('best_val_acc: {:.3f}%'.format(best_val_acc))
+    print('best_val_acc_epoch: {}'.format(best_val_acc_epoch))
+    print('test_acc: {:.3f}%'.format(test()))
