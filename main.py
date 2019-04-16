@@ -13,11 +13,13 @@ import utils
 
 parser = argparse.ArgumentParser(description='Facial Expression Recognition')
 parser.add_argument('--model', type=str, default='VGG19', help='network architecture')
+parser.add_argument('--epoch', type=int, default=250, help='# of epochs')
 parser.add_argument('--dataset', type=str, default='FER2013', help='dataset')
 parser.add_argument('--bs', type=int, default=64, help='batch size for train')
 parser.add_argument('--bs-vt', type=int, default=8, help='batch size for validation / test')
 parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
-parser.add_argument('--save-path', type=str, default='checkpoints/best_model.t7', help='path to save model')
+parser.add_argument('--save-path', type=str, default='checkpoints/', help='path to save model')
+parser.add_argument('--quick_test', type=bool, default=False, help='testing after done ever 20% of epochs')
 
 # Preprocessing
 parser.add_argument('--blur', type=bool, default=False, help='Preprocess: whether to blur inputs')
@@ -52,8 +54,8 @@ learning_rate_decay_rate = 0.9
 best_val_acc = 0.0
 best_val_acc_epoch = 0
 
-start_epoch = 0
-total_epoch = 250
+start_epoch = 1
+total_epoch = args.epoch
 
 if not os.path.exists(os.path.dirname(args.save_path)):
     os.makedirs(os.path.dirname(args.save_path))
@@ -171,6 +173,9 @@ def val(epoch):
         correct = 0.0
         total = 0.0
 
+        val_loss_his = []
+        val_acc_his = []
+
         for batch_idx, (inputs, targets) in enumerate(val_loader):
             bs, ncrops, c, h, w = np.shape(inputs)
             inputs = inputs.view(-1, c, h, w)
@@ -186,20 +191,35 @@ def val(epoch):
             utils.progress_bar(batch_idx, len(val_loader), 'Loss: {:.3f} | Acc: {:.3f}% ({:.0f}/{:.0f})'\
                                .format(val_loss / (batch_idx + 1), correct / total * 100, correct, total))
 
+        val_loss_his.append(val_loss / (batch_idx + 1))
+
         # Save checkpoint
         val_acc = correct / total * 100
+        val_acc_his.append(val_acc)
         if val_acc > best_val_acc:
-            print('Saving checkpoint...')
+            print('Updating Best checkpoint...')
             print('best_val_acc: {:.3f}'.format(val_acc))
             state = {
                 'net': net.state_dict() if use_cuda else net,
                 'acc': val_acc,
+                'acc_history': val_acc_his,
+                'loss_history': val_loss_his,
                 'epoch': epoch,
             }
-            torch.save(state, args.save_path)
+            torch.save(state, os.path.join(args.save_path, "best_model.t7"))
             best_val_acc = val_acc
             best_val_acc_epoch = epoch
 
+        #save the latest checkpoint
+        print('Updating Latest checkpoint...')
+        state = {
+                'net': net.state_dict() if use_cuda else net,
+                'acc': val_acc,
+                'acc_history': val_acc_his,
+                'loss_history': val_loss_his,
+                'epoch': epoch,
+        }
+        torch.save(state, os.path.join(args.save_path, "model_{}.t7".format(epoch)))
 # Test
 def test():
     with torch.no_grad():
@@ -231,11 +251,16 @@ def test():
 
         return correct / total * 100
 
-for epoch in range(start_epoch, total_epoch):
+for epoch in range(start_epoch, total_epoch + 1):
     print('Epoch: {}'.format(epoch))
     train(epoch)
     val(epoch)
+    if args.quick_test and (epoch % (total_epoch * 0.2) == 0):
+        test_and_print_inf()
 
-print('best_val_acc: {:.3f}%'.format(best_val_acc))
-print('best_val_acc_epoch: {}'.format(best_val_acc_epoch))
-print('test_acc: {:.3f}%'.format(test()))
+test_and_print_inf()
+
+def test_and_print_inf():
+    print('best_val_acc: {:.3f}%'.format(best_val_acc))
+    print('best_val_acc_epoch: {}'.format(best_val_acc_epoch))
+    print('test_acc: {:.3f}%'.format(test()))
