@@ -13,12 +13,13 @@ import utils
 
 parser = argparse.ArgumentParser(description='Facial Expression Recognition')
 parser.add_argument('--model', type=str, default='VGG19', help='network architecture')
+parser.add_argument('--epoch', type=int, default=250, help='# of epochs')
 parser.add_argument('--dataset', type=str, default='FER2013', help='dataset')
 parser.add_argument('--bs', type=int, default=64, help='batch size for train')
 parser.add_argument('--bs-vt', type=int, default=8, help='batch size for validation / test')
 parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
 parser.add_argument('--save-path', type=str, default='checkpoints/best_model.t7', help='path to save model')
-parser.add_argument('--quick_test', type=bool, default='False', help='testing after done ever 20% of epochs')
+parser.add_argument('--quick_test', type=bool, default=False, help='testing after done ever 20% of epochs')
 
 # Preprocessing
 parser.add_argument('--blur', type=bool, default=False, help='Preprocess: whether to blur inputs')
@@ -53,8 +54,8 @@ learning_rate_decay_rate = 0.9
 best_val_acc = 0.0
 best_val_acc_epoch = 0
 
-start_epoch = 0
-total_epoch = 250
+start_epoch = 1
+total_epoch = args.epoch
 
 if not os.path.exists(os.path.dirname(args.save_path)):
     os.makedirs(os.path.dirname(args.save_path))
@@ -232,7 +233,7 @@ def test():
 
         return correct / total * 100
 
-for epoch in range(start_epoch, total_epoch):
+for epoch in range(start_epoch, total_epoch + 1):
     print('Epoch: {}'.format(epoch))
     train(epoch)
     val(epoch)
