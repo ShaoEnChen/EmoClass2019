@@ -252,6 +252,11 @@ def test():
 
         return correct / total * 100
 
+def test_and_print_inf():
+    print('best_val_acc: {:.3f}%'.format(best_val_acc))
+    print('best_val_acc_epoch: {}'.format(best_val_acc_epoch))
+    print('test_acc: {:.3f}%'.format(test()))
+    
 for epoch in range(start_epoch, total_epoch + 1):
     print('Epoch: {}'.format(epoch))
     train(epoch)
@@ -261,7 +266,3 @@ for epoch in range(start_epoch, total_epoch + 1):
 
 test_and_print_inf()
 
-def test_and_print_inf():
-    print('best_val_acc: {:.3f}%'.format(best_val_acc))
-    print('best_val_acc_epoch: {}'.format(best_val_acc_epoch))
-    print('test_acc: {:.3f}%'.format(test()))
