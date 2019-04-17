@@ -28,7 +28,7 @@ parser.add_argument('--sharpen', type=bool, default=False, help='Preprocess: whe
 parser.add_argument('--landmark', type=bool, default=False, help='Preprocess: whether to add facial landmarks')
 parser.add_argument('--angle-correct', type=bool, default=False, help='Preprocess: whether to do face angle correction')
 parser.add_argument('--gamma-correct', type=bool, default=False, help='Preprocess: whether to do gamma correction')
-parser.add_argument('--gamma', type=int, default=0.5, help='Preprocess: gamma value for correction')
+parser.add_argument('--gamma', type=float, default=0.5, help='Preprocess: gamma value for correction')
 parser.add_argument('--hist-equal', type=bool, default=False, help='Preprocess: whether to do histogram equalization')
 parser.add_argument('--upscale', type=bool, default=False, help='Preprocess: whether to quadruple input pixels')
 
