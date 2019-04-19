@@ -63,8 +63,10 @@ best_val_acc_epoch = 0
 start_epoch = 0
 total_epoch = args.epoch
 
-if not os.path.exists(os.path.dirname(args.save_path)):
-    os.makedirs(os.path.dirname(args.save_path))
+dirpath = os.getcwd()
+save_path = os.path.join(dirpath, args.save_path)
+if not os.path.exists(os.path.dirname(save_path)):
+    os.makedirs(os.path.dirname(save_path))
 
 # Prepare data
 print('Preparing data...')
@@ -258,7 +260,7 @@ def val(epoch):
                 'loss_history': val_loss_his,
                 'epoch': epoch,
             }
-            torch.save(state, os.path.join(args.save_path, "best_model.t7"))
+            torch.save(state, os.path.join(save_path, "best_model.t7"))
             best_val_acc = val_acc
             best_val_acc_epoch = epoch
 
@@ -271,12 +273,12 @@ def val(epoch):
                 'loss_history': val_loss_his,
                 'epoch': epoch,
         }
-        torch.save(state, os.path.join(args.save_path, "model_{}.t7".format(epoch)))
+        torch.save(state, os.path.join(save_path, "model_{}.t7".format(epoch)))
 # Test
 def test():
     with torch.no_grad():
         print('Testing...')
-        checkpoint = torch.load(args.save_path)
+        checkpoint = torch.load(save_path)
         if use_cuda:
             net.load_state_dict(checkpoint['net'])
         else:
