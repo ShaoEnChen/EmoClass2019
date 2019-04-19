@@ -252,9 +252,6 @@ def test():
 
         return correct / total * 100
 
-def test_and_print_inf():
-    print('test_acc: {:.3f}%'.format(test()))
-
 for epoch in range(start_epoch, total_epoch + 1):
     print('Epoch: {}'.format(epoch))
     train(epoch)
@@ -262,5 +259,5 @@ for epoch in range(start_epoch, total_epoch + 1):
     if args.quick_test and (epoch % (total_epoch * 0.2) == 0):
         test_and_print_inf()
 
-test_and_print_inf()
+print('test_acc: {:.3f}%'.format(test()))
 
