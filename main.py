@@ -278,7 +278,7 @@ def val(epoch):
 def test():
     with torch.no_grad():
         print('Testing...')
-        checkpoint = torch.load(save_path)
+        checkpoint = torch.load(os.path.join(save_path, "best_model.t7"))
         if use_cuda:
             net.load_state_dict(checkpoint['net'])
         else:
