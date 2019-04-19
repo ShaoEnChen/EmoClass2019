@@ -359,10 +359,6 @@ def adjust_ortho_decay_rate(epoch):
 
     return o_d
 
-def test_and_print_inf():
-    print('test_acc: {:.3f}%'.format(test()))
-
-
 ortho_decay = args.ortho_decay
 for epoch in range(start_epoch, total_epoch):
     print('Epoch: {}'.format(epoch))
@@ -370,5 +366,4 @@ for epoch in range(start_epoch, total_epoch):
     train(epoch, odecay)
     val(epoch)
 
-test_and_print_inf()
-
+print('test_acc: {:.3f}%'.format(test()))
