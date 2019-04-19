@@ -280,6 +280,7 @@ def test():
         print('Testing...')
         checkpoint = torch.load(os.path.join(save_path, "best_model.t7"))
         if use_cuda:
+            net = VGG('VGG19', args.upscale)
             net.load_state_dict(checkpoint['net'])
         else:
             net = checkpoint['net']
