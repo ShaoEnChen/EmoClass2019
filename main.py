@@ -21,6 +21,10 @@ parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
 parser.add_argument('--save-path', type=str, default='checkpoints/', help='path to save model')
 #parser.add_argument('--quick_test', type=bool, default=False, help='testing after done ever 20% of epochs')
 
+# Test mode
+parser.add_argument('--test_only', type=bool, default=False, help='test mode')
+parser.add_argument('--load', type=str, default='', help='load model path')
+
 # Preprocessing
 parser.add_argument('--blur', type=bool, default=False, help='Preprocess: whether to blur inputs')
 parser.add_argument('--gs-blur', type=bool, default=False, help='Preprocess: whether to gaussian blur inputs')
@@ -33,7 +37,7 @@ parser.add_argument('--hist-equal', type=bool, default=False, help='Preprocess: 
 parser.add_argument('--upscale', type=bool, default=False, help='Preprocess: whether to quadruple input pixels')
 
 
-#reg
+# Reg
 parser.add_argument('--ortho', default=False, type=bool, help='whether use orthogonality or not')
 parser.add_argument('--ortho-decay', default=1e-2, type=float, help='ortho weight decay')
 parser.add_argument('--ortho_type', default='l2', type=str, help='ortho type')
@@ -317,9 +321,12 @@ def val(epoch):
 def test():
     with torch.no_grad():
         print('Testing...')
-        checkpoint = torch.load(os.path.join(save_path, "best_model.t7"))
+        if args.test_only and args.load != '':
+            checkpoint = torch.load(args.load)
+        else:
+            checkpoint = torch.load(os.path.join(save_path, "best_model.t7"))
+        
         if use_cuda:
-            
             net.load_state_dict(checkpoint['net'])
         else:
             net = checkpoint['net']
@@ -359,11 +366,12 @@ def adjust_ortho_decay_rate(epoch):
 
     return o_d
 
-ortho_decay = args.ortho_decay
-for epoch in range(start_epoch, total_epoch):
-    print('Epoch: {}'.format(epoch))
-    odecay = adjust_ortho_decay_rate(epoch)
-    train(epoch, odecay)
-    val(epoch)
+if not args.test_only: 
+    ortho_decay = args.ortho_decay
+    for epoch in range(start_epoch, total_epoch):
+        print('Epoch: {}'.format(epoch))
+        odecay = adjust_ortho_decay_rate(epoch)
+        train(epoch, odecay)
+        val(epoch)
 
 print('test_acc: {:.3f}%'.format(test()))
