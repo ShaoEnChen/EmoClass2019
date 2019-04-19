@@ -64,7 +64,7 @@ start_epoch = 0
 total_epoch = args.epoch
 
 dirpath = os.getcwd()
-save_path = os.path.join(dirpath, args.save_path)
+save_path = args.save_path
 if not os.path.exists(os.path.dirname(save_path)):
     os.makedirs(os.path.dirname(save_path))
 print(save_path)
