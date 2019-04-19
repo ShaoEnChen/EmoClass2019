@@ -36,6 +36,7 @@ parser.add_argument('--upscale', type=bool, default=False, help='Preprocess: whe
 #reg
 parser.add_argument('--ortho', default=False, type=bool, help='whether use orthogonality or not')
 parser.add_argument('--ortho-decay', default=1e-2, type=float, help='ortho weight decay')
+parser.add_argument('--ortho_type', default='l2', type=str, help='ortho type')
 
 
 args = parser.parse_args()
@@ -174,7 +175,41 @@ def l2_reg_ortho(mdl):
                 l2_reg = l2_reg + (torch.norm(v3,2))**2
     return l2_reg
 
+def uni_ortho(mdl):
+    l2_reg = None
+    for W in mdl.parameters():
+        if W.ndimension() < 2:
+                continue
+        else:
+            cols = W[0].numel()
+            rows = W.shape[0]
+            w1 = W.view(-1,cols)
+            wt = torch.transpose(w1,0,1)
+            if (rows > cols):
+                m  = torch.matmul(wt,w1)
+                ident = Variable(torch.eye(cols,cols),requires_grad=True)
+            else:
+                m = torch.matmul(w1,wt)
+                ident = Variable(torch.eye(rows,rows), requires_grad=True)
+            '''
+            ident = ident.cuda()
+            w_tmp = (m - ident)
+            b_k = Variable(torch.rand(w_tmp.shape[1],1))
+            b_k = b_k.cuda()
 
+            v1 = torch.matmul(w_tmp, b_k)
+            norm1 = torch.norm(v1,2)
+            v2 = torch.div(v1,norm1)
+            v3 = torch.matmul(w_tmp,v2)
+            '''
+            ident = ident.cuda()
+            m -= ident
+            m = torch.norm(m)
+            if l2_reg is None:
+                l2_reg = m
+            else:
+                l2_reg = l2_reg + m
+    return l2_reg
 # Train
 def train(epoch, odecay):
     print('Training...')
@@ -201,7 +236,10 @@ def train(epoch, odecay):
         # Compute loss
         loss = criterion(outputs, targets)
         if args.ortho:
-            oloss =  l2_reg_ortho(net)
+            if args.ortho_type == 'l2':
+                oloss =  l2_reg_ortho(net)
+            else:
+                oloss = uni_ortho(net)
             oloss =  odecay * oloss
             loss = loss + oloss
             
@@ -274,13 +312,14 @@ def val(epoch):
                 'epoch': epoch,
         }
         torch.save(state, os.path.join(save_path, "model_{}.t7".format(epoch)))
+        print('best acc:', best_val_acc)
 # Test
 def test():
     with torch.no_grad():
         print('Testing...')
         checkpoint = torch.load(os.path.join(save_path, "best_model.t7"))
         if use_cuda:
-            net = VGG('VGG19', args.upscale)
+            
             net.load_state_dict(checkpoint['net'])
         else:
             net = checkpoint['net']
