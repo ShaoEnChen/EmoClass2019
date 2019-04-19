@@ -35,7 +35,7 @@ parser.add_argument('--upscale', type=bool, default=False, help='Preprocess: whe
 
 #reg
 parser.add_argument('--ortho', default=False, type=bool, help='whether use orthogonality or not')
-parser.add_argument('--ortho-decay', default=1e-2, type=float, help='ortho weight decay')
+parser.add_argument('--ortho-decay', default=1e-3, type=float, help='ortho weight decay')
 parser.add_argument('--ortho_type', default='l2', type=str, help='ortho type')
 
 
