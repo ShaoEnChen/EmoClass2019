@@ -197,11 +197,12 @@ def train(epoch, odecay):
         outputs = net(inputs)
 
         # Compute loss
-        oloss =  l2_reg_ortho(net)
-        oloss =  odecay * oloss
         loss = criterion(outputs, targets)
-        loss = loss + oloss
-
+        if args.ortho:
+            oloss =  l2_reg_ortho(net)
+            oloss =  odecay * oloss
+            loss = loss + oloss
+            
         loss.backward()
         utils.clip_gradient(optimizer, 0.1)
         optimizer.step()
