@@ -67,7 +67,7 @@ dirpath = os.getcwd()
 save_path = os.path.join(dirpath, args.save_path)
 if not os.path.exists(os.path.dirname(save_path)):
     os.makedirs(os.path.dirname(save_path))
-
+print(save_path)
 # Prepare data
 print('Preparing data...')
 
