@@ -142,7 +142,7 @@ if args.model == 'VGG19':
 elif args.model  == 'Resnet18':
     net = ResNet18()
 elif args.model  == 'Resnet101':
-    net = Resnet101()
+    net = ResNet101()
 
 if use_cuda:
     net.cuda()
