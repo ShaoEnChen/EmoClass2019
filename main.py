@@ -20,7 +20,7 @@ parser.add_argument('--bs-vt', type=int, default=8, help='batch size for validat
 parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
 parser.add_argument('--decay_start', type=int, default=80, help='')
 parser.add_argument('--decay_every', type=int, default=5, help='')
-parser.add_argument('--decay_rate', type=int, default=0.9, help='')
+parser.add_argument('--decay_rate', type=float, default=0.9, help='')
 parser.add_argument('--save-path', type=str, default='checkpoints/', help='path to save model')
 
 #parser.add_argument('--quick_test', type=bool, default=False, help='testing after done ever 20% of epochs')
@@ -62,9 +62,9 @@ else:
 
 use_cuda = torch.cuda.is_available()
 
-learning_rate_decay_start = regs.decay_start
-learning_rate_decay_every = regs.decay_every
-learning_rate_decay_rate = regs.decay_rate
+learning_rate_decay_start = args.decay_start
+learning_rate_decay_every = args.decay_every
+learning_rate_decay_rate = args.decay_rate
 
 best_val_acc = 0.0
 best_val_acc_epoch = 0
