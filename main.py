@@ -319,11 +319,14 @@ def val(epoch):
         print('best acc:', best_val_acc)
 # Test
 def test():
+    global net
     with torch.no_grad():
         print('Testing...')
         if args.test_only and args.load != '':
+            print("load model : ", args.load)
             checkpoint = torch.load(args.load)
         else:
+            print("load model : ", os.path.join(save_path, "best_model.t7"))
             checkpoint = torch.load(os.path.join(save_path, "best_model.t7"))
         
         if use_cuda:
