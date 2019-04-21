@@ -141,6 +141,8 @@ if args.model == 'VGG19':
     net = VGG('VGG19', args.upscale)
 elif args.model  == 'Resnet18':
     net = ResNet18()
+elif args.model  == 'Resnet101':
+    net = Resnet101()
 
 if use_cuda:
     net.cuda()
