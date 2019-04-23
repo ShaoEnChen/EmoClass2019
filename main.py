@@ -18,8 +18,16 @@ parser.add_argument('--dataset', type=str, default='FER2013', help='dataset')
 parser.add_argument('--bs', type=int, default=64, help='batch size for train')
 parser.add_argument('--bs-vt', type=int, default=8, help='batch size for validation / test')
 parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
+parser.add_argument('--decay_start', type=int, default=80, help='')
+parser.add_argument('--decay_every', type=int, default=5, help='')
+parser.add_argument('--decay_rate', type=float, default=0.9, help='')
 parser.add_argument('--save-path', type=str, default='checkpoints/', help='path to save model')
-parser.add_argument('--quick_test', type=bool, default=False, help='testing after done ever 20% of epochs')
+
+#parser.add_argument('--quick_test', type=bool, default=False, help='testing after done ever 20% of epochs')
+
+# Test mode
+parser.add_argument('--test_only', type=bool, default=False, help='test mode')
+parser.add_argument('--load', type=str, default='', help='load model path')
 
 # Preprocessing
 parser.add_argument('--blur', type=bool, default=False, help='Preprocess: whether to blur inputs')
@@ -31,6 +39,13 @@ parser.add_argument('--gamma-correct', type=bool, default=False, help='Preproces
 parser.add_argument('--gamma', type=float, default=0.5, help='Preprocess: gamma value for correction')
 parser.add_argument('--hist-equal', type=bool, default=False, help='Preprocess: whether to do histogram equalization')
 parser.add_argument('--upscale', type=bool, default=False, help='Preprocess: whether to quadruple input pixels')
+
+
+# Reg
+parser.add_argument('--ortho', default=False, type=bool, help='whether use orthogonality or not')
+parser.add_argument('--ortho-decay', default=1e-2, type=float, help='ortho weight decay')
+parser.add_argument('--ortho_type', default='l2', type=str, help='ortho type')
+
 
 args = parser.parse_args()
 
@@ -47,19 +62,21 @@ else:
 
 use_cuda = torch.cuda.is_available()
 
-learning_rate_decay_start = 80
-learning_rate_decay_every = 5
-learning_rate_decay_rate = 0.9
+learning_rate_decay_start = args.decay_start
+learning_rate_decay_every = args.decay_every
+learning_rate_decay_rate = args.decay_rate
 
 best_val_acc = 0.0
 best_val_acc_epoch = 0
 
-start_epoch = 1
+start_epoch = 0
 total_epoch = args.epoch
 
-if not os.path.exists(os.path.dirname(args.save_path)):
-    os.makedirs(os.path.dirname(args.save_path))
-
+dirpath = os.getcwd()
+save_path = os.path.join(dirpath, args.save_path)
+if not os.path.exists(os.path.dirname(save_path)):
+    os.makedirs(os.path.dirname(save_path))
+print(save_path)
 # Prepare data
 print('Preparing data...')
 
@@ -115,6 +132,8 @@ val_loader = torch.utils.data.DataLoader(val_set, batch_size=args.bs, shuffle=Fa
 test_set = FER2013(read_data(test_file), transform=transform_test)
 test_loader = torch.utils.data.DataLoader(test_set, batch_size=args.bs, shuffle=False, num_workers=1)
 
+
+
 # Build model
 print('Building model...')
 
@@ -122,6 +141,8 @@ if args.model == 'VGG19':
     net = VGG('VGG19', args.upscale)
 elif args.model  == 'Resnet18':
     net = ResNet18()
+elif args.model  == 'Resnet101':
+    net = ResNet101()
 
 if use_cuda:
     net.cuda()
@@ -129,8 +150,78 @@ if use_cuda:
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
 
+
+"""Function used for Orthogonal Regularization"""
+def l2_reg_ortho(mdl):
+    l2_reg = None
+    for W in mdl.parameters():
+        if W.ndimension() < 2:
+            continue
+        else:
+            cols = W[0].numel()
+            rows = W.shape[0]
+            w1 = W.view(-1,cols)
+            wt = torch.transpose(w1,0,1)
+            if (rows > cols):
+                m  = torch.matmul(wt,w1)
+                ident = Variable(torch.eye(cols,cols),requires_grad=True)
+            else:
+                m = torch.matmul(w1,wt)
+                ident = Variable(torch.eye(rows,rows), requires_grad=True)
+
+            ident = ident.cuda()
+            w_tmp = (m - ident)
+            b_k = Variable(torch.rand(w_tmp.shape[1],1))
+            b_k = b_k.cuda()
+
+            v1 = torch.matmul(w_tmp, b_k)
+            norm1 = torch.norm(v1,2)
+            v2 = torch.div(v1,norm1)
+            v3 = torch.matmul(w_tmp,v2)
+
+            if l2_reg is None:
+                l2_reg = (torch.norm(v3,2))**2
+            else:
+                l2_reg = l2_reg + (torch.norm(v3,2))**2
+    return l2_reg
+
+def uni_ortho(mdl):
+    l2_reg = None
+    for W in mdl.parameters():
+        if W.ndimension() < 2:
+                continue
+        else:
+            cols = W[0].numel()
+            rows = W.shape[0]
+            w1 = W.view(-1,cols)
+            wt = torch.transpose(w1,0,1)
+            if (rows > cols):
+                m  = torch.matmul(wt,w1)
+                ident = Variable(torch.eye(cols,cols),requires_grad=True)
+            else:
+                m = torch.matmul(w1,wt)
+                ident = Variable(torch.eye(rows,rows), requires_grad=True)
+            '''
+            ident = ident.cuda()
+            w_tmp = (m - ident)
+            b_k = Variable(torch.rand(w_tmp.shape[1],1))
+            b_k = b_k.cuda()
+
+            v1 = torch.matmul(w_tmp, b_k)
+            norm1 = torch.norm(v1,2)
+            v2 = torch.div(v1,norm1)
+            v3 = torch.matmul(w_tmp,v2)
+            '''
+            ident = ident.cuda()
+            m -= ident
+            m = torch.norm(m)
+            if l2_reg is None:
+                l2_reg = m
+            else:
+                l2_reg = l2_reg + m
+    return l2_reg
 # Train
-def train(epoch):
+def train(epoch, odecay):
     print('Training...')
     net.train()
     train_loss = 0.0
@@ -151,7 +242,17 @@ def train(epoch):
             inputs, targets = inputs.cuda(), targets.cuda()
         optimizer.zero_grad()
         outputs = net(inputs)
+
+        # Compute loss
         loss = criterion(outputs, targets)
+        if args.ortho:
+            if args.ortho_type == 'l2':
+                oloss =  l2_reg_ortho(net)
+            else:
+                oloss = uni_ortho(net)
+            oloss =  odecay * oloss
+            loss = loss + oloss
+            
         loss.backward()
         utils.clip_gradient(optimizer, 0.1)
         optimizer.step()
@@ -207,7 +308,7 @@ def val(epoch):
                 'loss_history': val_loss_his,
                 'epoch': epoch,
             }
-            torch.save(state, os.path.join(args.save_path, "best_model.t7"))
+            torch.save(state, os.path.join(save_path, "best_model.t7"))
             best_val_acc = val_acc
             best_val_acc_epoch = epoch
 
@@ -220,12 +321,20 @@ def val(epoch):
                 'loss_history': val_loss_his,
                 'epoch': epoch,
         }
-        torch.save(state, os.path.join(args.save_path, "model_{}.t7".format(epoch)))
+        torch.save(state, os.path.join(save_path, "model_{}.t7".format(epoch)))
+        print('best acc:', best_val_acc)
 # Test
 def test():
+    global net
     with torch.no_grad():
         print('Testing...')
-        checkpoint = torch.load(args.save_path)
+        if args.test_only and args.load != '':
+            print("load model : ", args.load)
+            checkpoint = torch.load(args.load)
+        else:
+            print("load model : ", os.path.join(save_path, "best_model.t7"))
+            checkpoint = torch.load(os.path.join(save_path, "best_model.t7"))
+        
         if use_cuda:
             net.load_state_dict(checkpoint['net'])
         else:
@@ -252,12 +361,26 @@ def test():
 
         return correct / total * 100
 
-for epoch in range(start_epoch, total_epoch + 1):
-    print('Epoch: {}'.format(epoch))
-    train(epoch)
-    val(epoch)
-    if args.quick_test and (epoch % (total_epoch * 0.2) == 0):
-        test_and_print_inf()
+def adjust_ortho_decay_rate(epoch):
+    o_d = args.ortho_decay
+
+    if epoch > 120:
+       o_d = 0.0
+    elif epoch > 70:
+       o_d = 1e-6 * o_d
+    elif epoch > 50:
+       o_d = 1e-4 * o_d
+    elif epoch > 20:
+       o_d = 1e-3 * o_d
+
+    return o_d
+
+if not args.test_only: 
+    ortho_decay = args.ortho_decay
+    for epoch in range(start_epoch, total_epoch):
+        print('Epoch: {}'.format(epoch))
+        odecay = adjust_ortho_decay_rate(epoch)
+        train(epoch, odecay)
+        val(epoch)
 
 print('test_acc: {:.3f}%'.format(test()))
-
